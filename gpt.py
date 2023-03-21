@@ -89,7 +89,7 @@ class MultiHeadAttention(nn.Module):
 
         # perform the weighted aggregation of the values
         out = we @ v
-        out = out.transpose(1, 2).continuous().view(B, T, self.all_head_size)
+        out = out.transpose(1, 2).contiguous().view(B, T, self.all_head_size)
         out = self.proj(out)
         
         return out
@@ -197,4 +197,8 @@ for iter in range(max_iters):
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+generated_text = decode(m.generate(context, max_new_tokens=5000)[0].tolist())
+
+# write generated text to file
+with open('generated_text.txt', 'w', encoding='utf-8') as f:
+    f.write(generated_text)

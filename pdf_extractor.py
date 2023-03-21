@@ -1,11 +1,16 @@
+import os
 import PyPDF2
 
-pdf_file = open('Homer_The Odyssey_( PDFDrive.com).pdf', 'rb')
-pdf_reader = PyPDF2.PdfReader(pdf_file)
+folder_path = 'F:\\projects\\text-extractor-from-pdf-files\\pdf_books'
 
-text = ''
-for page in range(len(pdf_reader.pages)):
-    text += pdf_reader.pages[page].extract_text()
+for filename in os.listdir(folder_path):
+    if filename.endswith('.pdf'):
+        pdf_path = os.path.join(folder_path, filename)
+        with open(pdf_path, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ''
+            for page in range(len(pdf_reader.pages)):
+                text += pdf_reader.pages[page].extract_text()
+        with open(f'{filename}.txt', 'w') as txt_file:
+            txt_file.write(text)
 
-with open('input.text', 'w') as f:
-    f.write(text)
