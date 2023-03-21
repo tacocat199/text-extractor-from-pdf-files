@@ -60,42 +60,38 @@ def estimate_loss():
     model.train()
     return out
 
-class Head(nn.Module):
-    
-    def __init__(self, head_size):
-        super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        B,T,C = x.shape
-        k = self.key(x)
-        q = self.query(x)
-        # compute attention scores ("affinities")
-        wei = q @ k.transpose(-2,-1) * C**-0.5 # (B, T, C) @ (B, C, T) -> (B, T, T)
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        wei = F.softmax(wei, dim=-1)
-        we = self.dropout(wei)
-        # perform the weighted aggregation of the values
-        v = self.value(x)
-        out = wei @ v
-        return out
-
 class MultiHeadAttention(nn.Module):
 
     def __init__(self, num_heads, head_size):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(num_heads * head_size, n_embd)
+        self.num_heads = num_heads
+        self.head_size = head_size
+        self.all_head_size = num_heads * head_size
+
+        self.key = nn.Linear(n_embd, self.all_head_size, bias=False)
+        self.query = nn.Linear(n_embd, self.all_head_size, bias=False)
+        self.value = nn.Linear(n_embd, self.all_head_size, bias=False)
+        self.proj = nn.Linear(self.all_head_size, n_embd)
+        
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        B, T, C = x.shape
+
+        k = self.key(x).view(B, T, self.num_heads, self.head_size).transpose(1,2)
+        q = self.query(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
+        v = self.value(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
+
+        # Compute attention scores ("affinities")
+        wei = q @ k.transpose(-2, -1) * self.head_size ** -0.5
+        wei = F.softmax(wei, dim=-1)
+        we = self.dropout(wei)
+
+        # perform the weighted aggregation of the values
+        out = we @ v
+        out = out.transpose(1, 2).continuous().view(B, T, self.all_head_size)
         out = self.proj(out)
+        
         return out
 
 class FeedForward(nn.Module):
