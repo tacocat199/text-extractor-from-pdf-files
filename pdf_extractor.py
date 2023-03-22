@@ -1,5 +1,3 @@
-# reads all the PDF files in a specified folder, extracted the text from each page of each PDF file
-# and saves the extracted text as a separate text file with the same name as the original PDF file
 import os
 import PyPDF2
 
@@ -7,7 +5,7 @@ import PyPDF2
 pdf_folder_path = 'F:\\projects\\text-extractor-from-pdf-files\\pdf_books'
 
 # Specify the output file path for the decoded content
-output_file_path = 'output.txt'
+output_file_path = 'F:\\projects\\text-extractor-from-pdf-files\\data_meal\\input.txt'
 
 # Open the output file in write mode
 with open(output_file_path, 'w', encoding='utf-8') as output_file:
@@ -20,5 +18,8 @@ with open(output_file_path, 'w', encoding='utf-8') as output_file:
                 text = ''
                 for page in range(len(pdf_reader.pages)):
                     text += pdf_reader.pages[page].extract_text()
+                # Remove excessive spacing
+                text = ' '.join(text.split())
                 # Write the extracted text to the output file
+                output_file.write(text.strip() + '\n')
         
